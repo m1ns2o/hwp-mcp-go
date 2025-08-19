@@ -2,11 +2,17 @@ package hwp
 
 import (
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/disintegration/imaging"
 	"github.com/go-ole/go-ole"
 	"github.com/go-ole/go-ole/oleutil"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -489,10 +495,10 @@ func (h *Controller) InsertTable(rows, cols int) error {
 	oleutil.PutProperty(hTableCreation, "WidthType", 0)
 	oleutil.PutProperty(hTableCreation, "HeightType", 1)
 	oleutil.PutProperty(hTableCreation, "WidthValue", 0)
-	oleutil.PutProperty(hTableCreation, "HeightValue", 1000)
+	oleutil.PutProperty(hTableCreation, "HeightValue", 1000) // 셀 높이를 더 작게 조정
 
 	// Set column widths
-	colWidth := 8000 / cols
+	colWidth := 8000 / cols // 전체 표 너비를 더 작게 조정
 	oleutil.CallMethod(hTableCreation, "CreateItemArray", "ColWidth", cols)
 	colWidthArray := oleutil.MustGetProperty(hTableCreation, "ColWidth").ToIDispatch()
 	for i := 0; i < cols; i++ {
@@ -559,119 +565,219 @@ func (h *Controller) FillTableWithData(data [][]string, startRow, startCol int, 
 	return nil
 }
 
-// InsertImage inserts an image at the current cursor position
-func (h *Controller) InsertImage(path string, width, height *int, useOriginalSize bool, embedded, reverse, watermark bool, effect int) error {
+// getImageDimensions gets the dimensions of an image file
+func (h *Controller) getImageDimensions(imagePath string) (int, int, error) {
+	img, err := imaging.Open(imagePath)
+	if err != nil {
+		return 800, 600, fmt.Errorf("failed to open image: %v", err)
+	}
+	bounds := img.Bounds()
+	return bounds.Dx(), bounds.Dy(), nil
+}
+
+// downloadImageFromURL downloads an image from URL to a temporary file
+func (h *Controller) downloadImageFromURL(imageURL string) (string, error) {
+	// Create HTTP client with timeout
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	
+	// Create request with user agent
+	req, err := http.NewRequest("GET", imageURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %v", err)
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	
+	// Make request
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to download image: %v", err)
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to download image: status %d", resp.StatusCode)
+	}
+	
+	// Parse URL to get file extension
+	parsedURL, err := url.Parse(imageURL)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse URL: %v", err)
+	}
+	
+	fileExt := filepath.Ext(parsedURL.Path)
+	if fileExt == "" {
+		// Try to get extension from content type
+		contentType := resp.Header.Get("Content-Type")
+		switch {
+		case strings.Contains(contentType, "jpeg") || strings.Contains(contentType, "jpg"):
+			fileExt = ".jpg"
+		case strings.Contains(contentType, "png"):
+			fileExt = ".png"
+		case strings.Contains(contentType, "gif"):
+			fileExt = ".gif"
+		default:
+			fileExt = ".jpg" // default
+		}
+	}
+	
+	// Create temporary file
+	tempFile, err := os.CreateTemp("", "hwp_image_*"+fileExt)
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp file: %v", err)
+	}
+	defer tempFile.Close()
+	
+	// Copy image data to temp file
+	_, err = io.Copy(tempFile, resp.Body)
+	if err != nil {
+		os.Remove(tempFile.Name())
+		return "", fmt.Errorf("failed to save image: %v", err)
+	}
+	
+	fmt.Fprintf(os.Stderr, "Image downloaded: %s -> %s\n", imageURL, tempFile.Name())
+	return tempFile.Name(), nil
+}
+
+// calculateProportionalSize calculates proportional size maintaining aspect ratio
+func (h *Controller) calculateProportionalSize(originalWidth, originalHeight int, maxWidth, maxHeight *int, scale *float64) (int, int) {
+	if scale != nil {
+		// Scale based calculation - multiply original pixels by scale
+		newWidth := int(float64(originalWidth) * *scale)
+		newHeight := int(float64(originalHeight) * *scale)
+		return newWidth, newHeight
+	}
+	
+	if maxWidth != nil || maxHeight != nil {
+		// Calculate scale based on max constraints (convert to hwpunit)
+		// Approximate conversion: 1px = 26.458 hwpunit
+		pxToHwpunit := 26.458
+		hwpWidth := float64(originalWidth) * pxToHwpunit
+		hwpHeight := float64(originalHeight) * pxToHwpunit
+		
+		var scaleRatio float64
+		if maxWidth != nil && maxHeight != nil {
+			// Both constraints specified, use more restrictive one
+			widthRatio := float64(*maxWidth) / hwpWidth
+			heightRatio := float64(*maxHeight) / hwpHeight
+			if widthRatio < heightRatio {
+				scaleRatio = widthRatio
+			} else {
+				scaleRatio = heightRatio
+			}
+		} else if maxWidth != nil {
+			// Only width constraint
+			scaleRatio = float64(*maxWidth) / hwpWidth
+		} else {
+			// Only height constraint
+			scaleRatio = float64(*maxHeight) / hwpHeight
+		}
+		
+		newWidth := int(hwpWidth * scaleRatio)
+		newHeight := int(hwpHeight * scaleRatio)
+		return newWidth, newHeight
+	}
+	
+	// Return original pixel dimensions
+	return originalWidth, originalHeight
+}
+
+// InsertImage inserts an image at the current cursor position with full Python functionality
+func (h *Controller) InsertImage(imagePath string, width, height *int, useOriginalSize bool, maxWidth, maxHeight *int, scale *float64, keepAspectRatio bool, embedded, reverse, watermark bool, effect int) error {
 	if !h.isRunning || h.hwp == nil {
 		return fmt.Errorf("HWP not connected")
 	}
-
-	// Get HAction
-	hActionVar, err := safeGetProperty(h.hwp, "HAction")
-	if err != nil {
-		return fmt.Errorf("failed to get HAction: %v", err)
-	}
-	defer hActionVar.Clear()
 	
-	hAction := hActionVar.ToIDispatch()
-	if hAction == nil {
-		return fmt.Errorf("HAction is nil")
-	}
-
-	// Get HParameterSet
-	hParameterSetVar, err := safeGetProperty(h.hwp, "HParameterSet")
-	if err != nil {
-		return fmt.Errorf("failed to get HParameterSet: %v", err)
-	}
-	defer hParameterSetVar.Clear()
+	var tempFilePath string
+	var absPath string
+	var err error
 	
-	hParameterSet := hParameterSetVar.ToIDispatch()
-	if hParameterSet == nil {
-		return fmt.Errorf("HParameterSet is nil")
-	}
-
-	// Get HInsertPicture
-	hInsertPictureVar, err := safeGetProperty(hParameterSet, "HInsertPicture")
-	if err != nil {
-		return fmt.Errorf("failed to get HInsertPicture: %v", err)
-	}
-	defer hInsertPictureVar.Clear()
-	
-	hInsertPicture := hInsertPictureVar.ToIDispatch()
-	if hInsertPicture == nil {
-		return fmt.Errorf("HInsertPicture is nil")
-	}
-
-	// Get HSet
-	hSetVar, err := safeGetProperty(hInsertPicture, "HSet")
-	if err != nil {
-		return fmt.Errorf("failed to get HSet: %v", err)
-	}
-	defer hSetVar.Clear()
-	
-	hSet := hSetVar.ToIDispatch()
-	if hSet == nil {
-		return fmt.Errorf("HSet is nil")
-	}
-
-	// Get default settings
-	if _, err := safeCallMethod(hAction, "GetDefault", "InsertPicture", hSet); err != nil {
-		return fmt.Errorf("failed to get default: %v", err)
-	}
-
-	// Set image path
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Fprintf(os.Stderr, "Recovered from panic in PutProperty Path: %v\n", r)
+	// Handle URL or local file path
+	if strings.HasPrefix(imagePath, "http://") || strings.HasPrefix(imagePath, "https://") {
+		// Download from URL
+		tempFilePath, err = h.downloadImageFromURL(imagePath)
+		if err != nil {
+			return fmt.Errorf("failed to download image: %v", err)
 		}
-	}()
+		defer func() {
+			if tempFilePath != "" {
+				os.Remove(tempFilePath)
+				fmt.Fprintf(os.Stderr, "Temporary file deleted: %s\n", tempFilePath)
+			}
+		}()
+		absPath = tempFilePath
+	} else {
+		// Local file path
+		absPath, err = filepath.Abs(imagePath)
+		if err != nil {
+			return fmt.Errorf("failed to get absolute path: %v", err)
+		}
+		if _, err := os.Stat(absPath); os.IsNotExist(err) {
+			return fmt.Errorf("image file not found: %s", absPath)
+		}
+	}
 	
-	if _, err := oleutil.PutProperty(hInsertPicture, "Path", path); err != nil {
-		return fmt.Errorf("failed to set path property: %v", err)
-	}
-
-	// Set embedded property
-	if _, err := oleutil.PutProperty(hInsertPicture, "Embedded", embedded); err != nil {
-		return fmt.Errorf("failed to set embedded property: %v", err)
-	}
-
-	// Set size options
-	sizeOption := 0 // 0: 실제크기, 1: 지정크기
-	if !useOriginalSize {
+	// Determine size parameters
+	var actualWidth, actualHeight int
+	var sizeOption int
+	
+	if useOriginalSize {
+		// Use original size (sizeOption=0)
+		sizeOption = 0
+		actualWidth = 0
+		actualHeight = 0
+	} else if keepAspectRatio {
+		// Keep aspect ratio with constraints
 		sizeOption = 1
-	}
-	if _, err := oleutil.PutProperty(hInsertPicture, "SizeOption", sizeOption); err != nil {
-		return fmt.Errorf("failed to set size option: %v", err)
-	}
-
-	// Set dimensions if specified
-	if width != nil && height != nil && !useOriginalSize {
-		if _, err := oleutil.PutProperty(hInsertPicture, "Width", *width); err != nil {
-			return fmt.Errorf("failed to set width: %v", err)
+		originalWidth, originalHeight, err := h.getImageDimensions(absPath)
+		if err != nil {
+			// Fallback to default size if can't get dimensions
+			fmt.Fprintf(os.Stderr, "Warning: Could not get image dimensions: %v\n", err)
+			originalWidth, originalHeight = 800, 600
 		}
-		if _, err := oleutil.PutProperty(hInsertPicture, "Height", *height); err != nil {
-			return fmt.Errorf("failed to set height: %v", err)
+		
+		calculatedWidth, calculatedHeight := h.calculateProportionalSize(originalWidth, originalHeight, maxWidth, maxHeight, scale)
+		actualWidth = calculatedWidth
+		actualHeight = calculatedHeight
+	} else {
+		// Use specified dimensions
+		sizeOption = 1
+		if width != nil && height != nil {
+			actualWidth = *width
+			actualHeight = *height
+		} else {
+			// Get original dimensions and use them as fallback
+			originalWidth, originalHeight, err := h.getImageDimensions(absPath)
+			if err != nil {
+				originalWidth, originalHeight = 5000, 5000 // fallback
+			}
+			
+			if width != nil {
+				actualWidth = *width
+			} else {
+				actualWidth = originalWidth
+			}
+			
+			if height != nil {
+				actualHeight = *height
+			} else {
+				actualHeight = originalHeight
+			}
 		}
 	}
-
-	// Set reverse (flip horizontally)
-	if _, err := oleutil.PutProperty(hInsertPicture, "Reverse", reverse); err != nil {
-		return fmt.Errorf("failed to set reverse property: %v", err)
+	
+	// Call InsertPicture with all parameters
+	_, err = safeCallMethod(h.hwp, "InsertPicture", absPath, embedded, sizeOption, reverse, watermark, effect, actualWidth, actualHeight)
+	if err != nil {
+		return fmt.Errorf("failed to insert picture: %v", err)
 	}
-
-	// Set watermark
-	if _, err := oleutil.PutProperty(hInsertPicture, "Watermark", watermark); err != nil {
-		return fmt.Errorf("failed to set watermark property: %v", err)
+	
+	// Move cursor to the right after image insertion
+	_, err = safeCallMethod(h.hwp, "Run", "CharRight")
+	if err != nil {
+		return fmt.Errorf("failed to move cursor: %v", err)
 	}
-
-	// Set effect (0: 실제그림, 1: 회색조, 2: 흑백)
-	if _, err := oleutil.PutProperty(hInsertPicture, "Effect", effect); err != nil {
-		return fmt.Errorf("failed to set effect property: %v", err)
-	}
-
-	// Execute the image insertion
-	if _, err := safeCallMethod(hAction, "Execute", "InsertPicture", hSet); err != nil {
-		return fmt.Errorf("failed to execute insert picture: %v", err)
-	}
-
+	
 	return nil
 }

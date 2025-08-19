@@ -222,7 +222,7 @@ func HandleHwpInsertLeftColumn(ctx context.Context, request mcp.CallToolRequest)
 		hwpDispatch := controller.GetHwp()
 		
 		// Insert left column
-		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableInsertLeftCol")
+		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableInsertLeftColumn")
 		if err != nil {
 			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
 			return
@@ -247,7 +247,7 @@ func HandleHwpInsertRightColumn(ctx context.Context, request mcp.CallToolRequest
 		hwpDispatch := controller.GetHwp()
 		
 		// Insert right column
-		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableInsertRightCol")
+		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableInsertRightColumn")
 		if err != nil {
 			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
 			return

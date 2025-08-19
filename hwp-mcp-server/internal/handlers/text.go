@@ -19,7 +19,6 @@ const (
 	HWP_BATCH_OPERATIONS          = "hwp_batch_operations"
 	HWP_CREATE_DOCUMENT_FROM_TEXT = "hwp_create_document_from_text"
 	HWP_INSERT_IMAGE              = "hwp_insert_image"
-	HWP_INSERT_PICTURE            = "hwp_insert_picture"
 )
 
 // Text manipulation tool handlers
@@ -260,14 +259,29 @@ func HandleHwpInsertImage(ctx context.Context, request mcp.CallToolRequest) (*mc
 		return hwp.CreateTextResult("Error: Image path is required"), nil
 	}
 
-	var width, height *int
+	// Extract parameters with Python-like defaults
+	var width, height, maxWidth, maxHeight *int
+	var scale *float64
+	
 	if w := request.GetInt("width", 0); w > 0 {
 		width = &w
 	}
 	if h := request.GetInt("height", 0); h > 0 {
 		height = &h
 	}
-	useOriginalSize := request.GetBool("use_original_size", true)
+	if mw := request.GetInt("max_width", 0); mw > 0 {
+		maxWidth = &mw
+	}
+	if mh := request.GetInt("max_height", 0); mh > 0 {
+		maxHeight = &mh
+	}
+	if s := request.GetInt("scale", 0); s > 0 {
+		scaleFloat := float64(s)
+		scale = &scaleFloat
+	}
+	
+	useOriginalSize := request.GetBool("use_original_size", true)  // Default to original size
+	keepAspectRatio := request.GetBool("keep_aspect_ratio", false)
 	embedded := request.GetBool("embedded", true)
 	reverse := request.GetBool("reverse", false)
 	watermark := request.GetBool("watermark", false)
@@ -282,20 +296,44 @@ func HandleHwpInsertImage(ctx context.Context, request mcp.CallToolRequest) (*mc
 			return
 		}
 
-		err := controller.InsertImage(path, width, height, useOriginalSize, embedded, reverse, watermark, effect)
+		err := controller.InsertImage(path, width, height, useOriginalSize, maxWidth, maxHeight, scale, keepAspectRatio, embedded, reverse, watermark, effect)
 		if err != nil {
 			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
 			return
 		}
 
-		// Generate size info string
+		// Generate size info string (like Python version)
 		var sizeInfo string
 		if useOriginalSize {
 			sizeInfo = "original size"
-		} else if width != nil && height != nil {
-			sizeInfo = fmt.Sprintf("%dx%d", *width, *height)
+		} else if keepAspectRatio {
+			if scale != nil {
+				sizeInfo = fmt.Sprintf("scale %.2fx (aspect ratio maintained)", *scale)
+			} else if maxWidth != nil || maxHeight != nil {
+				var maxInfo []string
+				if maxWidth != nil {
+					maxInfo = append(maxInfo, fmt.Sprintf("max_width=%d", *maxWidth))
+				}
+				if maxHeight != nil {
+					maxInfo = append(maxInfo, fmt.Sprintf("max_height=%d", *maxHeight))
+				}
+				sizeInfo = fmt.Sprintf("%s (aspect ratio maintained)", strings.Join(maxInfo, ", "))
+			} else {
+				sizeInfo = "aspect ratio maintained"
+			}
 		} else {
-			sizeInfo = "custom size"
+			var actualWidth, actualHeight string
+			if width != nil {
+				actualWidth = fmt.Sprintf("%d", *width)
+			} else {
+				actualWidth = "auto"
+			}
+			if height != nil {
+				actualHeight = fmt.Sprintf("%d", *height)
+			} else {
+				actualHeight = "auto"
+			}
+			sizeInfo = fmt.Sprintf("%sx%s", actualWidth, actualHeight)
 		}
 
 		// Generate effect info
@@ -331,45 +369,3 @@ func HandleHwpInsertImage(ctx context.Context, request mcp.CallToolRequest) (*mc
 	return result, nil
 }
 
-func HandleHwpInsertPicture(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	// This is a compatibility function that redirects to hwp_insert_image
-	imagePath := request.GetString("image_path", "")
-	if imagePath == "" {
-		return hwp.CreateTextResult("Error: Image path is required"), nil
-	}
-
-	embedded := request.GetBool("embedded", true)
-	sizeOption := request.GetInt("size_option", 1)
-	reverse := request.GetBool("reverse", false)
-	watermark := request.GetBool("watermark", false)
-	effect := request.GetInt("effect", 0)
-	var width, height *int
-	if w := request.GetInt("width", 0); w > 0 {
-		width = &w
-	}
-	if h := request.GetInt("height", 0); h > 0 {
-		height = &h
-	}
-
-	useOriginalSize := (sizeOption == 0)
-
-	var result *mcp.CallToolResult
-
-	hwp.ExecuteHWPOperation(func() {
-		controller := hwp.GetGlobalController()
-		if controller == nil || !controller.IsRunning() || controller.GetHwp() == nil {
-			result = hwp.CreateTextResult("Error: No HWP document is open. Please create or open a document first.")
-			return
-		}
-
-		err := controller.InsertImage(imagePath, width, height, useOriginalSize, embedded, reverse, watermark, effect)
-		if err != nil {
-			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
-			return
-		}
-
-		result = hwp.CreateTextResult(fmt.Sprintf("Picture inserted successfully: %s", imagePath))
-	})
-
-	return result, nil
-}
