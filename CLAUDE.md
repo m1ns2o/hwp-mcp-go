@@ -97,9 +97,11 @@ hwp-mcp-go/
 
 ### Tool Categories
 
-- **Document Management**: `hwp_create`, `hwp_open`, `hwp_save`, `hwp_close`
-- **Text Operations**: `hwp_insert_text`, `hwp_set_font`, `hwp_insert_paragraph`, `hwp_get_text`
-- **Table Operations**: `hwp_insert_table`, `hwp_fill_table_with_data`, `hwp_fill_column_numbers`
+- **Document Management**: `hwp_create`, `hwp_open`, `hwp_save`, `hwp_close`, `hwp_get_text`
+- **Text Operations**: `hwp_insert_text`, `hwp_set_font`, `hwp_insert_paragraph`
+- **Image Operations**: `hwp_insert_image`, `hwp_insert_picture` (compatibility)
+- **Table Operations**: `hwp_insert_table`, `hwp_fill_table_with_data`, `hwp_fill_column_numbers`, `hwp_create_table_with_data`
+- **Table Manipulation**: `hwp_insert_left_column`, `hwp_insert_right_column`, `hwp_insert_upper_row`, `hwp_insert_lower_row`, `hwp_move_to_left_cell`, `hwp_move_to_right_cell`, `hwp_move_to_upper_cell`, `hwp_move_to_lower_cell`, `hwp_merge_table_cells`
 - **Advanced Features**: `hwp_batch_operations`, `hwp_create_document_from_text`, `hwp_create_complete_document`
 - **Utility**: `hwp_ping_pong` (connection testing)
 

@@ -18,6 +18,16 @@ const (
 	HWP_FILL_TABLE_WITH_DATA   = "hwp_fill_table_with_data"
 	HWP_FILL_COLUMN_NUMBERS    = "hwp_fill_column_numbers"
 	HWP_CREATE_TABLE_WITH_DATA = "hwp_create_table_with_data"
+	// Table manipulation tools
+	HWP_INSERT_LEFT_COLUMN     = "hwp_insert_left_column"
+	HWP_INSERT_RIGHT_COLUMN    = "hwp_insert_right_column"
+	HWP_INSERT_UPPER_ROW       = "hwp_insert_upper_row"
+	HWP_INSERT_LOWER_ROW       = "hwp_insert_lower_row"
+	HWP_MOVE_TO_LEFT_CELL      = "hwp_move_to_left_cell"
+	HWP_MOVE_TO_RIGHT_CELL     = "hwp_move_to_right_cell"
+	HWP_MOVE_TO_UPPER_CELL     = "hwp_move_to_upper_cell"
+	HWP_MOVE_TO_LOWER_CELL     = "hwp_move_to_lower_cell"
+	HWP_MERGE_TABLE_CELLS      = "hwp_merge_table_cells"
 )
 
 // Table operation tool handlers
@@ -192,6 +202,233 @@ func HandleHwpCreateTableWithData(ctx context.Context, request mcp.CallToolReque
 		}
 
 		result = hwp.CreateTextResult(fmt.Sprintf("Table created (%dx%d) and filled with data", rows, cols))
+	})
+
+	return result, nil
+}
+
+// Table manipulation handlers
+
+func HandleHwpInsertLeftColumn(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	var result *mcp.CallToolResult
+
+	hwp.ExecuteHWPOperation(func() {
+		controller := hwp.GetGlobalController()
+		if controller == nil || !controller.IsRunning() || controller.GetHwp() == nil {
+			result = hwp.CreateTextResult("Error: No HWP document is open. Please create or open a document first.")
+			return
+		}
+
+		hwpDispatch := controller.GetHwp()
+		
+		// Insert left column
+		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableInsertLeftCol")
+		if err != nil {
+			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
+			return
+		}
+
+		result = hwp.CreateTextResult("Left column inserted successfully")
+	})
+
+	return result, nil
+}
+
+func HandleHwpInsertRightColumn(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	var result *mcp.CallToolResult
+
+	hwp.ExecuteHWPOperation(func() {
+		controller := hwp.GetGlobalController()
+		if controller == nil || !controller.IsRunning() || controller.GetHwp() == nil {
+			result = hwp.CreateTextResult("Error: No HWP document is open. Please create or open a document first.")
+			return
+		}
+
+		hwpDispatch := controller.GetHwp()
+		
+		// Insert right column
+		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableInsertRightCol")
+		if err != nil {
+			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
+			return
+		}
+
+		result = hwp.CreateTextResult("Right column inserted successfully")
+	})
+
+	return result, nil
+}
+
+func HandleHwpInsertUpperRow(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	var result *mcp.CallToolResult
+
+	hwp.ExecuteHWPOperation(func() {
+		controller := hwp.GetGlobalController()
+		if controller == nil || !controller.IsRunning() || controller.GetHwp() == nil {
+			result = hwp.CreateTextResult("Error: No HWP document is open. Please create or open a document first.")
+			return
+		}
+
+		hwpDispatch := controller.GetHwp()
+		
+		// Insert upper row
+		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableInsertUpperRow")
+		if err != nil {
+			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
+			return
+		}
+
+		result = hwp.CreateTextResult("Upper row inserted successfully")
+	})
+
+	return result, nil
+}
+
+func HandleHwpInsertLowerRow(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	var result *mcp.CallToolResult
+
+	hwp.ExecuteHWPOperation(func() {
+		controller := hwp.GetGlobalController()
+		if controller == nil || !controller.IsRunning() || controller.GetHwp() == nil {
+			result = hwp.CreateTextResult("Error: No HWP document is open. Please create or open a document first.")
+			return
+		}
+
+		hwpDispatch := controller.GetHwp()
+		
+		// Insert lower row
+		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableInsertLowerRow")
+		if err != nil {
+			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
+			return
+		}
+
+		result = hwp.CreateTextResult("Lower row inserted successfully")
+	})
+
+	return result, nil
+}
+
+func HandleHwpMoveToLeftCell(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	var result *mcp.CallToolResult
+
+	hwp.ExecuteHWPOperation(func() {
+		controller := hwp.GetGlobalController()
+		if controller == nil || !controller.IsRunning() || controller.GetHwp() == nil {
+			result = hwp.CreateTextResult("Error: No HWP document is open. Please create or open a document first.")
+			return
+		}
+
+		hwpDispatch := controller.GetHwp()
+		
+		// Move to left cell
+		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableLeftCell")
+		if err != nil {
+			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
+			return
+		}
+
+		result = hwp.CreateTextResult("Moved to left cell")
+	})
+
+	return result, nil
+}
+
+func HandleHwpMoveToRightCell(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	var result *mcp.CallToolResult
+
+	hwp.ExecuteHWPOperation(func() {
+		controller := hwp.GetGlobalController()
+		if controller == nil || !controller.IsRunning() || controller.GetHwp() == nil {
+			result = hwp.CreateTextResult("Error: No HWP document is open. Please create or open a document first.")
+			return
+		}
+
+		hwpDispatch := controller.GetHwp()
+		
+		// Move to right cell
+		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableRightCell")
+		if err != nil {
+			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
+			return
+		}
+
+		result = hwp.CreateTextResult("Moved to right cell")
+	})
+
+	return result, nil
+}
+
+func HandleHwpMoveToUpperCell(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	var result *mcp.CallToolResult
+
+	hwp.ExecuteHWPOperation(func() {
+		controller := hwp.GetGlobalController()
+		if controller == nil || !controller.IsRunning() || controller.GetHwp() == nil {
+			result = hwp.CreateTextResult("Error: No HWP document is open. Please create or open a document first.")
+			return
+		}
+
+		hwpDispatch := controller.GetHwp()
+		
+		// Move to upper cell
+		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableUpperCell")
+		if err != nil {
+			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
+			return
+		}
+
+		result = hwp.CreateTextResult("Moved to upper cell")
+	})
+
+	return result, nil
+}
+
+func HandleHwpMoveToLowerCell(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	var result *mcp.CallToolResult
+
+	hwp.ExecuteHWPOperation(func() {
+		controller := hwp.GetGlobalController()
+		if controller == nil || !controller.IsRunning() || controller.GetHwp() == nil {
+			result = hwp.CreateTextResult("Error: No HWP document is open. Please create or open a document first.")
+			return
+		}
+
+		hwpDispatch := controller.GetHwp()
+		
+		// Move to lower cell
+		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableLowerCell")
+		if err != nil {
+			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
+			return
+		}
+
+		result = hwp.CreateTextResult("Moved to lower cell")
+	})
+
+	return result, nil
+}
+
+func HandleHwpMergeTableCells(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	var result *mcp.CallToolResult
+
+	hwp.ExecuteHWPOperation(func() {
+		controller := hwp.GetGlobalController()
+		if controller == nil || !controller.IsRunning() || controller.GetHwp() == nil {
+			result = hwp.CreateTextResult("Error: No HWP document is open. Please create or open a document first.")
+			return
+		}
+
+		hwpDispatch := controller.GetHwp()
+		
+		// Merge selected cells
+		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableMergeCell")
+		if err != nil {
+			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
+			return
+		}
+
+		result = hwp.CreateTextResult("Table cells merged successfully")
 	})
 
 	return result, nil

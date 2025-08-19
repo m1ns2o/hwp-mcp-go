@@ -2,5 +2,6 @@
 /.vscode
 /claude-config-example.json
 /hwp-mcp-go.exe
+/hwp-mcp-go.exe~
 /main.exe
 /test_mcp_client.go

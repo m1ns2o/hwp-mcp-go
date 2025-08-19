@@ -21,7 +21,6 @@ type Controller struct {
 }
 
 var globalController *Controller
-var comInitMutex sync.Mutex
 var hwpOperationCh chan func()
 var hwpOperationOnce sync.Once
 
@@ -85,15 +84,6 @@ func ExecuteHWPOperationWithError(operation func() error) error {
 	return ExecuteHWPOperationWithResult(operation)
 }
 
-// ensureCOMInitialized ensures COM is initialized for the current thread
-func ensureCOMInitialized() {
-	comInitMutex.Lock()
-	defer comInitMutex.Unlock()
-	
-	// Lock OS thread to ensure COM calls happen on the same thread
-	runtime.LockOSThread()
-	ole.CoInitialize(0)
-}
 
 // safeCallMethod safely calls a COM method with panic recovery
 func safeCallMethod(obj *ole.IDispatch, method string, params ...interface{}) (result *ole.VARIANT, err error) {
@@ -565,6 +555,123 @@ func (h *Controller) FillTableWithData(data [][]string, startRow, startCol int, 
 	oleutil.CallMethod(h.hwp, "Run", "TableSelCell")
 	oleutil.CallMethod(h.hwp, "Run", "Cancel")
 	oleutil.CallMethod(h.hwp, "Run", "MoveDown")
+
+	return nil
+}
+
+// InsertImage inserts an image at the current cursor position
+func (h *Controller) InsertImage(path string, width, height *int, useOriginalSize bool, embedded, reverse, watermark bool, effect int) error {
+	if !h.isRunning || h.hwp == nil {
+		return fmt.Errorf("HWP not connected")
+	}
+
+	// Get HAction
+	hActionVar, err := safeGetProperty(h.hwp, "HAction")
+	if err != nil {
+		return fmt.Errorf("failed to get HAction: %v", err)
+	}
+	defer hActionVar.Clear()
+	
+	hAction := hActionVar.ToIDispatch()
+	if hAction == nil {
+		return fmt.Errorf("HAction is nil")
+	}
+
+	// Get HParameterSet
+	hParameterSetVar, err := safeGetProperty(h.hwp, "HParameterSet")
+	if err != nil {
+		return fmt.Errorf("failed to get HParameterSet: %v", err)
+	}
+	defer hParameterSetVar.Clear()
+	
+	hParameterSet := hParameterSetVar.ToIDispatch()
+	if hParameterSet == nil {
+		return fmt.Errorf("HParameterSet is nil")
+	}
+
+	// Get HInsertPicture
+	hInsertPictureVar, err := safeGetProperty(hParameterSet, "HInsertPicture")
+	if err != nil {
+		return fmt.Errorf("failed to get HInsertPicture: %v", err)
+	}
+	defer hInsertPictureVar.Clear()
+	
+	hInsertPicture := hInsertPictureVar.ToIDispatch()
+	if hInsertPicture == nil {
+		return fmt.Errorf("HInsertPicture is nil")
+	}
+
+	// Get HSet
+	hSetVar, err := safeGetProperty(hInsertPicture, "HSet")
+	if err != nil {
+		return fmt.Errorf("failed to get HSet: %v", err)
+	}
+	defer hSetVar.Clear()
+	
+	hSet := hSetVar.ToIDispatch()
+	if hSet == nil {
+		return fmt.Errorf("HSet is nil")
+	}
+
+	// Get default settings
+	if _, err := safeCallMethod(hAction, "GetDefault", "InsertPicture", hSet); err != nil {
+		return fmt.Errorf("failed to get default: %v", err)
+	}
+
+	// Set image path
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Fprintf(os.Stderr, "Recovered from panic in PutProperty Path: %v\n", r)
+		}
+	}()
+	
+	if _, err := oleutil.PutProperty(hInsertPicture, "Path", path); err != nil {
+		return fmt.Errorf("failed to set path property: %v", err)
+	}
+
+	// Set embedded property
+	if _, err := oleutil.PutProperty(hInsertPicture, "Embedded", embedded); err != nil {
+		return fmt.Errorf("failed to set embedded property: %v", err)
+	}
+
+	// Set size options
+	sizeOption := 0 // 0: 실제크기, 1: 지정크기
+	if !useOriginalSize {
+		sizeOption = 1
+	}
+	if _, err := oleutil.PutProperty(hInsertPicture, "SizeOption", sizeOption); err != nil {
+		return fmt.Errorf("failed to set size option: %v", err)
+	}
+
+	// Set dimensions if specified
+	if width != nil && height != nil && !useOriginalSize {
+		if _, err := oleutil.PutProperty(hInsertPicture, "Width", *width); err != nil {
+			return fmt.Errorf("failed to set width: %v", err)
+		}
+		if _, err := oleutil.PutProperty(hInsertPicture, "Height", *height); err != nil {
+			return fmt.Errorf("failed to set height: %v", err)
+		}
+	}
+
+	// Set reverse (flip horizontally)
+	if _, err := oleutil.PutProperty(hInsertPicture, "Reverse", reverse); err != nil {
+		return fmt.Errorf("failed to set reverse property: %v", err)
+	}
+
+	// Set watermark
+	if _, err := oleutil.PutProperty(hInsertPicture, "Watermark", watermark); err != nil {
+		return fmt.Errorf("failed to set watermark property: %v", err)
+	}
+
+	// Set effect (0: 실제그림, 1: 회색조, 2: 흑백)
+	if _, err := oleutil.PutProperty(hInsertPicture, "Effect", effect); err != nil {
+		return fmt.Errorf("failed to set effect property: %v", err)
+	}
+
+	// Execute the image insertion
+	if _, err := safeCallMethod(hAction, "Execute", "InsertPicture", hSet); err != nil {
+		return fmt.Errorf("failed to execute insert picture: %v", err)
+	}
 
 	return nil
 }

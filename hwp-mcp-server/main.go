@@ -118,6 +118,65 @@ func newMCPServer() *server.MCPServer {
 		),
 	), handlers.HandleHwpCreateDocumentFromText)
 
+	// Image insertion tools
+	mcpServer.AddTool(mcp.NewTool(handlers.HWP_INSERT_IMAGE,
+		mcp.WithDescription("Insert an image at the current cursor position"),
+		mcp.WithString("path",
+			mcp.Description("Image file path or URL"),
+			mcp.Required(),
+		),
+		mcp.WithNumber("width",
+			mcp.Description("Image width (hwpunit)"),
+		),
+		mcp.WithNumber("height",
+			mcp.Description("Image height (hwpunit)"),
+		),
+		mcp.WithBoolean("use_original_size",
+			mcp.Description("Use original image size"),
+		),
+		mcp.WithBoolean("embedded",
+			mcp.Description("Embed image in document"),
+		),
+		mcp.WithBoolean("reverse",
+			mcp.Description("Flip image horizontally"),
+		),
+		mcp.WithBoolean("watermark",
+			mcp.Description("Set as watermark"),
+		),
+		mcp.WithNumber("effect",
+			mcp.Description("Image effect (0: normal, 1: grayscale, 2: black&white)"),
+		),
+	), handlers.HandleHwpInsertImage)
+
+	mcpServer.AddTool(mcp.NewTool(handlers.HWP_INSERT_PICTURE,
+		mcp.WithDescription("Insert a picture (compatibility function)"),
+		mcp.WithString("image_path",
+			mcp.Description("Image file path"),
+			mcp.Required(),
+		),
+		mcp.WithBoolean("embedded",
+			mcp.Description("Embed image in document"),
+		),
+		mcp.WithNumber("size_option",
+			mcp.Description("Size option (0: original, 1: specified)"),
+		),
+		mcp.WithBoolean("reverse",
+			mcp.Description("Flip horizontally"),
+		),
+		mcp.WithBoolean("watermark",
+			mcp.Description("Set as watermark"),
+		),
+		mcp.WithNumber("effect",
+			mcp.Description("Image effect"),
+		),
+		mcp.WithNumber("width",
+			mcp.Description("Image width"),
+		),
+		mcp.WithNumber("height",
+			mcp.Description("Image height"),
+		),
+	), handlers.HandleHwpInsertPicture)
+
 	// Table operation tools
 	mcpServer.AddTool(mcp.NewTool(handlers.HWP_INSERT_TABLE,
 		mcp.WithDescription("Insert a table at the current cursor position"),
@@ -178,6 +237,43 @@ func newMCPServer() *server.MCPServer {
 			mcp.Description("Whether first row is header"),
 		),
 	), handlers.HandleHwpCreateTableWithData)
+
+	// Table manipulation tools
+	mcpServer.AddTool(mcp.NewTool(handlers.HWP_INSERT_LEFT_COLUMN,
+		mcp.WithDescription("Insert a column to the left of the current position"),
+	), handlers.HandleHwpInsertLeftColumn)
+
+	mcpServer.AddTool(mcp.NewTool(handlers.HWP_INSERT_RIGHT_COLUMN,
+		mcp.WithDescription("Insert a column to the right of the current position"),
+	), handlers.HandleHwpInsertRightColumn)
+
+	mcpServer.AddTool(mcp.NewTool(handlers.HWP_INSERT_UPPER_ROW,
+		mcp.WithDescription("Insert a row above the current position"),
+	), handlers.HandleHwpInsertUpperRow)
+
+	mcpServer.AddTool(mcp.NewTool(handlers.HWP_INSERT_LOWER_ROW,
+		mcp.WithDescription("Insert a row below the current position"),
+	), handlers.HandleHwpInsertLowerRow)
+
+	mcpServer.AddTool(mcp.NewTool(handlers.HWP_MOVE_TO_LEFT_CELL,
+		mcp.WithDescription("Move cursor to the left cell"),
+	), handlers.HandleHwpMoveToLeftCell)
+
+	mcpServer.AddTool(mcp.NewTool(handlers.HWP_MOVE_TO_RIGHT_CELL,
+		mcp.WithDescription("Move cursor to the right cell"),
+	), handlers.HandleHwpMoveToRightCell)
+
+	mcpServer.AddTool(mcp.NewTool(handlers.HWP_MOVE_TO_UPPER_CELL,
+		mcp.WithDescription("Move cursor to the upper cell"),
+	), handlers.HandleHwpMoveToUpperCell)
+
+	mcpServer.AddTool(mcp.NewTool(handlers.HWP_MOVE_TO_LOWER_CELL,
+		mcp.WithDescription("Move cursor to the lower cell"),
+	), handlers.HandleHwpMoveToLowerCell)
+
+	mcpServer.AddTool(mcp.NewTool(handlers.HWP_MERGE_TABLE_CELLS,
+		mcp.WithDescription("Merge selected table cells"),
+	), handlers.HandleHwpMergeTableCells)
 
 	// Advanced document creation tools
 	mcpServer.AddTool(mcp.NewTool(handlers.HWP_CREATE_COMPLETE_DOCUMENT,
