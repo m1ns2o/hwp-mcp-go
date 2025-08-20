@@ -781,3 +781,105 @@ func (h *Controller) InsertImage(imagePath string, width, height *int, useOrigin
 	
 	return nil
 }
+
+// Table navigation methods
+
+// MoveToTableCell moves to a specific table cell in the given direction
+func (h *Controller) MoveToTableCell(direction string) error {
+	if !h.isRunning || h.hwp == nil {
+		return fmt.Errorf("HWP not connected")
+	}
+
+	var command string
+	switch direction {
+	case "left":
+		command = "TableLeftCell"
+	case "right":
+		command = "TableRightCell"
+	case "upper":
+		command = "TableUpperCell"
+	case "lower":
+		command = "TableLowerCell"
+	case "col_begin":
+		command = "TableColBegin"
+	default:
+		return fmt.Errorf("invalid direction: %s", direction)
+	}
+
+	_, err := safeCallMethod(h.hwp, "Run", command)
+	return err
+}
+
+// Table manipulation methods
+
+// InsertTableColumn inserts a column in the specified direction
+func (h *Controller) InsertTableColumn(direction string) error {
+	if !h.isRunning || h.hwp == nil {
+		return fmt.Errorf("HWP not connected")
+	}
+
+	var command string
+	switch direction {
+	case "left":
+		command = "TableInsertLeftColumn"
+	case "right":
+		command = "TableInsertRightColumn"
+	default:
+		return fmt.Errorf("invalid direction: %s", direction)
+	}
+
+	_, err := safeCallMethod(h.hwp, "Run", command)
+	return err
+}
+
+// InsertTableRow inserts a row in the specified direction
+func (h *Controller) InsertTableRow(direction string) error {
+	if !h.isRunning || h.hwp == nil {
+		return fmt.Errorf("HWP not connected")
+	}
+
+	var command string
+	switch direction {
+	case "upper":
+		command = "TableInsertUpperRow"
+	case "lower":
+		command = "TableInsertLowerRow"
+	default:
+		return fmt.Errorf("invalid direction: %s", direction)
+	}
+
+	_, err := safeCallMethod(h.hwp, "Run", command)
+	return err
+}
+
+// MergeTableCells merges the currently selected table cells
+func (h *Controller) MergeTableCells() error {
+	if !h.isRunning || h.hwp == nil {
+		return fmt.Errorf("HWP not connected")
+	}
+
+	_, err := safeCallMethod(h.hwp, "Run", "TableMergeCell")
+	return err
+}
+
+// Additional table utility methods
+
+// SelectTableCell selects the current table cell
+func (h *Controller) SelectTableCell() error {
+	if !h.isRunning || h.hwp == nil {
+		return fmt.Errorf("HWP not connected")
+	}
+
+	_, err := safeCallMethod(h.hwp, "Run", "Select")
+	return err
+}
+
+// DeleteTableCellContent deletes the content of the current table cell
+func (h *Controller) DeleteTableCellContent() error {
+	if !h.isRunning || h.hwp == nil {
+		return fmt.Errorf("HWP not connected")
+	}
+
+	_, err := safeCallMethod(h.hwp, "Run", "Delete")
+	return err
+}

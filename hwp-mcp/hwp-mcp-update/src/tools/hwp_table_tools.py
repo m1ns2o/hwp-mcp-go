@@ -552,26 +552,26 @@ class HwpTableTools:
     #         return f"Error: {str(e)}"
     #
     # # === 표 병합 기능 ===
-    # def merge_tables(self) -> str:
-    #     """
-    #     표를 병합합니다.
-    #
-    #     Returns:
-    #         str: 결과 메시지
-    #     """
-    #     try:
-    #         if not self.hwp_controller:
-    #             return "Error: HWP Controller is not set"
-    #
-    #         success = self.hwp_controller.run_action("TableMergeTable")
-    #         if success:
-    #             logger.info("표 병합 완료")
-    #             return "표 병합 완료"
-    #         else:
-    #             return "표 병합 실패"
-    #     except Exception as e:
-    #         logger.error(f"표 병합 중 오류: {str(e)}", exc_info=True)
-    #         return f"Error: {str(e)}"
+    def merge_tables(self) -> str:
+        """
+        표를 병합합니다.
+    
+        Returns:
+            str: 결과 메시지
+        """
+        try:
+            if not self.hwp_controller:
+                return "Error: HWP Controller is not set"
+    
+            success = self.hwp_controller.run_action("TableMergeTable")
+            if success:
+                logger.info("표 병합 완료")
+                return "표 병합 완료"
+            else:
+                return "표 병합 실패"
+        except Exception as e:
+            logger.error(f"표 병합 중 오류: {str(e)}", exc_info=True)
+            return f"Error: {str(e)}"
 
 
 # 유틸리티 함수 - 문자열 데이터를 2차원 배열로 변환

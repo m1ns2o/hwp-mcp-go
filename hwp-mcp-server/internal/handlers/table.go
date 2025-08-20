@@ -8,7 +8,6 @@ import (
 
 	"hwp-mcp-go/hwp-mcp-server/internal/hwp"
 
-	"github.com/go-ole/go-ole/oleutil"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
@@ -122,26 +121,24 @@ func HandleHwpFillColumnNumbers(ctx context.Context, request mcp.CallToolRequest
 			return
 		}
 
-		hwpDispatch := controller.GetHwp()
-		
 		// Move to table beginning
-		oleutil.CallMethod(hwpDispatch, "Run", "TableColBegin")
+		controller.MoveToTableCell("col_begin")
 
 		// Move to specified column
 		for i := 0; i < column-1; i++ {
-			oleutil.CallMethod(hwpDispatch, "Run", "TableRightCell")
+			controller.MoveToTableCell("right")
 		}
 
 		// Fill numbers
 		for num := start; num <= end; num++ {
-			oleutil.CallMethod(hwpDispatch, "Run", "Select")
-			oleutil.CallMethod(hwpDispatch, "Run", "Delete")
+			controller.SelectTableCell()
+			controller.DeleteTableCellContent()
 
 			// Insert text directly using controller's method
 			controller.InsertText(strconv.Itoa(num), false)
 
 			if num < end {
-				oleutil.CallMethod(hwpDispatch, "Run", "TableLowerCell")
+				controller.MoveToTableCell("lower")
 			}
 		}
 
@@ -219,10 +216,8 @@ func HandleHwpInsertLeftColumn(ctx context.Context, request mcp.CallToolRequest)
 			return
 		}
 
-		hwpDispatch := controller.GetHwp()
-		
 		// Insert left column
-		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableInsertLeftColumn")
+		err := controller.InsertTableColumn("left")
 		if err != nil {
 			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
 			return
@@ -244,10 +239,8 @@ func HandleHwpInsertRightColumn(ctx context.Context, request mcp.CallToolRequest
 			return
 		}
 
-		hwpDispatch := controller.GetHwp()
-		
 		// Insert right column
-		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableInsertRightColumn")
+		err := controller.InsertTableColumn("right")
 		if err != nil {
 			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
 			return
@@ -269,10 +262,8 @@ func HandleHwpInsertUpperRow(ctx context.Context, request mcp.CallToolRequest) (
 			return
 		}
 
-		hwpDispatch := controller.GetHwp()
-		
 		// Insert upper row
-		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableInsertUpperRow")
+		err := controller.InsertTableRow("upper")
 		if err != nil {
 			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
 			return
@@ -294,10 +285,8 @@ func HandleHwpInsertLowerRow(ctx context.Context, request mcp.CallToolRequest) (
 			return
 		}
 
-		hwpDispatch := controller.GetHwp()
-		
 		// Insert lower row
-		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableInsertLowerRow")
+		err := controller.InsertTableRow("lower")
 		if err != nil {
 			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
 			return
@@ -319,10 +308,8 @@ func HandleHwpMoveToLeftCell(ctx context.Context, request mcp.CallToolRequest) (
 			return
 		}
 
-		hwpDispatch := controller.GetHwp()
-		
 		// Move to left cell
-		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableLeftCell")
+		err := controller.MoveToTableCell("left")
 		if err != nil {
 			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
 			return
@@ -344,10 +331,8 @@ func HandleHwpMoveToRightCell(ctx context.Context, request mcp.CallToolRequest) 
 			return
 		}
 
-		hwpDispatch := controller.GetHwp()
-		
 		// Move to right cell
-		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableRightCell")
+		err := controller.MoveToTableCell("right")
 		if err != nil {
 			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
 			return
@@ -369,10 +354,8 @@ func HandleHwpMoveToUpperCell(ctx context.Context, request mcp.CallToolRequest) 
 			return
 		}
 
-		hwpDispatch := controller.GetHwp()
-		
 		// Move to upper cell
-		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableUpperCell")
+		err := controller.MoveToTableCell("upper")
 		if err != nil {
 			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
 			return
@@ -394,10 +377,8 @@ func HandleHwpMoveToLowerCell(ctx context.Context, request mcp.CallToolRequest) 
 			return
 		}
 
-		hwpDispatch := controller.GetHwp()
-		
 		// Move to lower cell
-		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableLowerCell")
+		err := controller.MoveToTableCell("lower")
 		if err != nil {
 			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
 			return
@@ -419,10 +400,8 @@ func HandleHwpMergeTableCells(ctx context.Context, request mcp.CallToolRequest) 
 			return
 		}
 
-		hwpDispatch := controller.GetHwp()
-		
 		// Merge selected cells
-		_, err := oleutil.CallMethod(hwpDispatch, "Run", "TableMergeCell")
+		err := controller.MergeTableCells()
 		if err != nil {
 			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
 			return
