@@ -862,6 +862,16 @@ func (h *Controller) MergeTableCells() error {
 	return err
 }
 
+// MergeTables merges adjacent tables into one table
+func (h *Controller) MergeTables() error {
+	if !h.isRunning || h.hwp == nil {
+		return fmt.Errorf("HWP not connected")
+	}
+
+	_, err := safeCallMethod(h.hwp, "Run", "TableMergeTable")
+	return err
+}
+
 // Additional table utility methods
 
 // SelectTableCell selects the current table cell

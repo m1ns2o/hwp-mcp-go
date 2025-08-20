@@ -259,6 +259,10 @@ func newMCPServer() *server.MCPServer {
 		mcp.WithDescription("Merge selected table cells"),
 	), handlers.HandleHwpMergeTableCells)
 
+	mcpServer.AddTool(mcp.NewTool(handlers.HWP_MERGE_TABLES,
+		mcp.WithDescription("Merge adjacent tables into one table"),
+	), handlers.HandleHwpMergeTables)
+
 	// Advanced document creation tools
 	mcpServer.AddTool(mcp.NewTool(handlers.HWP_CREATE_COMPLETE_DOCUMENT,
 		mcp.WithDescription("Create a complete document from specification (report, letter, memo)"),

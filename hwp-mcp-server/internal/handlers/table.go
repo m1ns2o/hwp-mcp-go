@@ -27,6 +27,7 @@ const (
 	HWP_MOVE_TO_UPPER_CELL     = "hwp_move_to_upper_cell"
 	HWP_MOVE_TO_LOWER_CELL     = "hwp_move_to_lower_cell"
 	HWP_MERGE_TABLE_CELLS      = "hwp_merge_table_cells"
+	HWP_MERGE_TABLES           = "hwp_merge_tables"
 )
 
 // Table operation tool handlers
@@ -408,6 +409,29 @@ func HandleHwpMergeTableCells(ctx context.Context, request mcp.CallToolRequest) 
 		}
 
 		result = hwp.CreateTextResult("Table cells merged successfully")
+	})
+
+	return result, nil
+}
+
+func HandleHwpMergeTables(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	var result *mcp.CallToolResult
+
+	hwp.ExecuteHWPOperation(func() {
+		controller := hwp.GetGlobalController()
+		if controller == nil || !controller.IsRunning() || controller.GetHwp() == nil {
+			result = hwp.CreateTextResult("Error: No HWP document is open. Please create or open a document first.")
+			return
+		}
+
+		// Merge adjacent tables
+		err := controller.MergeTables()
+		if err != nil {
+			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
+			return
+		}
+
+		result = hwp.CreateTextResult("Tables merged successfully")
 	})
 
 	return result, nil
