@@ -415,8 +415,8 @@ func (h *Controller) insertTextDirect(text string) error {
 	return nil
 }
 
-// SetFontStyle sets font style properties
-func (h *Controller) SetFontStyle(fontName string, fontSize int, bold, italic, underline bool) error {
+// SetFontStyle sets font style properties with color support
+func (h *Controller) SetFontStyle(fontName string, fontSize int, bold, italic, underline bool, color ...string) error {
 	if !h.isRunning {
 		return fmt.Errorf("HWP not connected")
 	}
@@ -449,6 +449,26 @@ func (h *Controller) SetFontStyle(fontName string, fontSize int, bold, italic, u
 		underlineType = 1
 	}
 	oleutil.PutProperty(hCharShape, "UnderlineType", underlineType)
+
+	// Add color support
+	if len(color) > 0 && color[0] != "" {
+		colorMap := map[string]int{
+	"black":  0x000000,
+	"red":    0xFF0000,
+	"blue":   0x0000FF,
+	"green":  0x00FF00, // 웹 표준명으로는 lime
+	"yellow": 0xFFFF00,
+	"purple": 0xFF00FF, // magenta와 동일
+	"cyan":   0x00FFFF,
+}
+
+		
+		colorValue := colorMap["black"] // default
+		if c, exists := colorMap[strings.ToLower(color[0])]; exists {
+			colorValue = c
+		}
+		oleutil.PutProperty(hCharShape, "TextColor", colorValue)
+	}
 
 	_, err := oleutil.CallMethod(hAction, "Execute", "CharShape", hSet)
 	return err
@@ -893,3 +913,4 @@ func (h *Controller) DeleteTableCellContent() error {
 	_, err := safeCallMethod(h.hwp, "Run", "Delete")
 	return err
 }
+

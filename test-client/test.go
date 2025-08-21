@@ -76,7 +76,7 @@ func NewMCPTestClient() *MCPTestClient {
 
 func (c *MCPTestClient) Start() error {
 	// Start the MCP server
-	c.cmd = exec.Command("./hwp-mcp-go.exe")
+	c.cmd = exec.Command("./hwp-mcp-server-restored.exe")
 	
 	var err error
 	c.stdin, err = c.cmd.StdinPipe()

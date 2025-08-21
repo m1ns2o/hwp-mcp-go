@@ -68,7 +68,7 @@ func newMCPServer() *server.MCPServer {
 	), handlers.HandleHwpInsertText)
 
 	mcpServer.AddTool(mcp.NewTool(handlers.HWP_SET_FONT,
-		mcp.WithDescription("Set font properties"),
+		mcp.WithDescription("Set font properties with color support"),
 		mcp.WithString("name",
 			mcp.Description("Font name"),
 		),
@@ -83,6 +83,9 @@ func newMCPServer() *server.MCPServer {
 		),
 		mcp.WithBoolean("underline",
 			mcp.Description("Underline font"),
+		),
+		mcp.WithString("color",
+			mcp.Description("Text color (black, red, blue, green, yellow, purple, cyan)"),
 		),
 	), handlers.HandleHwpSetFont)
 
@@ -271,6 +274,7 @@ func newMCPServer() *server.MCPServer {
 			mcp.Required(),
 		),
 	), handlers.HandleHwpCreateCompleteDocument)
+
 
 	return mcpServer
 }

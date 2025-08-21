@@ -58,6 +58,7 @@ func HandleHwpSetFont(ctx context.Context, request mcp.CallToolRequest) (*mcp.Ca
 	bold := request.GetBool("bold", false)
 	italic := request.GetBool("italic", false)
 	underline := request.GetBool("underline", false)
+	color := request.GetString("color", "")
 
 	var result *mcp.CallToolResult
 
@@ -68,13 +69,49 @@ func HandleHwpSetFont(ctx context.Context, request mcp.CallToolRequest) (*mcp.Ca
 			return
 		}
 
-		err := controller.SetFontStyle(name, size, bold, italic, underline)
+		var err error
+		if color != "" {
+			err = controller.SetFontStyle(name, size, bold, italic, underline, color)
+		} else {
+			err = controller.SetFontStyle(name, size, bold, italic, underline)
+		}
+		
 		if err != nil {
 			result = hwp.CreateTextResult(fmt.Sprintf("Error: %v", err))
 			return
 		}
 
-		result = hwp.CreateTextResult("Font set successfully")
+		// Generate response message with applied settings
+		formatInfo := "Font set successfully"
+		if name != "" || size > 0 {
+			if name != "" && size > 0 {
+				formatInfo = fmt.Sprintf("Font set to %s %dpt", name, size)
+			} else if name != "" {
+				formatInfo = fmt.Sprintf("Font set to %s", name)
+			} else {
+				formatInfo = fmt.Sprintf("Font size set to %dpt", size)
+			}
+		}
+		
+		var attributes []string
+		if bold {
+			attributes = append(attributes, "bold")
+		}
+		if italic {
+			attributes = append(attributes, "italic")
+		}
+		if underline {
+			attributes = append(attributes, "underline")
+		}
+		if color != "" {
+			attributes = append(attributes, fmt.Sprintf("color: %s", color))
+		}
+		
+		if len(attributes) > 0 {
+			formatInfo += fmt.Sprintf(" (%s)", strings.Join(attributes, ", "))
+		}
+
+		result = hwp.CreateTextResult(formatInfo)
 	})
 
 	return result, nil
@@ -145,7 +182,12 @@ func HandleHwpBatchOperations(ctx context.Context, request mcp.CallToolRequest) 
 				bold, _ := op["bold"].(bool)
 				italic, _ := op["italic"].(bool)
 				underline, _ := op["underline"].(bool)
-				err = controller.SetFontStyle(name, size, bold, italic, underline)
+				color, _ := op["color"].(string)
+				if color != "" {
+					err = controller.SetFontStyle(name, size, bold, italic, underline, color)
+				} else {
+					err = controller.SetFontStyle(name, size, bold, italic, underline)
+				}
 			case "insert_table":
 				rows := int(op["rows"].(float64))
 				cols := int(op["cols"].(float64))
