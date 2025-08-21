@@ -1,11 +1,10 @@
 /.claude
 /.vscode
 /claude-config-example.json
-/hwp-mcp-go.exe
-/hwp-mcp-go.exe~
-/main.exe
 /test_mcp_client.go
-/test-client.exe
+*.exe
+*.exe~
+CLAUDE.md
 hwp-mcp/
 *.pdf
 *.py
