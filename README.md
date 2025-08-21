@@ -3,7 +3,7 @@
 [![Go](https://img.shields.io/badge/Go-1.21+-blue.svg)](https://golang.org)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-HWP-MCP-Go는 한글 워드 프로세서(HWP)를 Claude와 같은 AI 모델이 제어할 수 있도록 해주는 Model Context Protocol(MCP) 서버의 Go 구현체입니다. mark3labs/mcp-go 라이브러리를 사용하여 Python 버전을 Go로 포팅한 프로젝트입니다.
+HWP-MCP-Go는 한글 워드 프로세서(HWP)를 Claude와 같은 AI 모델이 제어할 수 있도록 해주는 Model Context Protocol(MCP) 서버의 Go 구현체입니다. 
 
 ## 주요 기능
 
