@@ -452,15 +452,17 @@ func (h *Controller) SetFontStyle(fontName string, fontSize int, bold, italic, u
 
 	// Add color support
 	if len(color) > 0 && color[0] != "" {
+		// HWP uses BGR format (Blue-Green-Red)
+		// 문서 예제: 0xFF0000 = 파란색 (BGR에서 FF는 Blue 위치)
 		colorMap := map[string]int{
-	"black":  0x000000,
-	"red":    0xFF0000,
-	"blue":   0x0000FF,
-	"green":  0x00FF00, // 웹 표준명으로는 lime
-	"yellow": 0xFFFF00,
-	"purple": 0xFF00FF, // magenta와 동일
-	"cyan":   0x00FFFF,
-}
+			"black":  0x000000, // 검정
+			"red":    0x0000FF, // 빨강 (BGR: 00-00-FF)
+			"blue":   0xFF0000, // 파랑 (BGR: FF-00-00) - 문서 예제 확인
+			"green":  0x00FF00, // 초록 (BGR: 00-FF-00) 
+			"yellow": 0x00FFFF, // 노랑 (BGR: 00-FF-FF = 초록+빨강)
+			"purple": 0xFF00FF, // 자홍 (BGR: FF-00-FF = 파랑+빨강)
+			"cyan":   0xFFFF00, // 청록 (BGR: FF-FF-00 = 파랑+초록)
+		}
 
 		
 		colorValue := colorMap["black"] // default
