@@ -60,20 +60,39 @@ Claude 데스크톱 설정 파일에 다음과 같이 HWP-MCP-Go 서버를 등�
 - `hwp_open`: 문서 열기
 - `hwp_save`: 문서 저장
 - `hwp_close`: 문서 닫기
+- `hwp_get_text`: 문서 텍스트 가져오기
+- `hwp_ping_pong`: 연결 테스트
 
 #### 텍스트 편집
-- `hwp_insert_text`: 텍스트 삽입
-- `hwp_set_font`: 글꼴 설정
+- `hwp_insert_text`: 텍스트 삽입 (줄바꿈 보존 옵션)
+- `hwp_set_font`: 글꼴 설정 (이름, 크기, 굵게, 기울임, 밑줄)
 - `hwp_insert_paragraph`: 단락 삽입
-- `hwp_get_text`: 문서 텍스트 가져오기
+- `hwp_batch_operations`: 다중 작업 배치 실행
+- `hwp_create_document_from_text`: 텍스트로부터 문서 생성
+
+#### 이미지 처리
+- `hwp_insert_image`: 이미지 삽입 (크기 조정, 종횡비, 효과, 워터마크 등)
 
 #### 테이블 작업
 - `hwp_insert_table`: 테이블 생성
 - `hwp_fill_table_with_data`: 테이블에 데이터 채우기
 - `hwp_fill_column_numbers`: 열에 연속 숫자 채우기
+- `hwp_create_table_with_data`: 데이터와 함께 테이블 생성
 
-#### 기타
-- `hwp_ping_pong`: 연결 테스트
+#### 테이블 조작
+- `hwp_insert_left_column`: 왼쪽에 열 삽입
+- `hwp_insert_right_column`: 오른쪽에 열 삽입
+- `hwp_insert_upper_row`: 위쪽에 행 삽입
+- `hwp_insert_lower_row`: 아래쪽에 행 삽입
+- `hwp_move_to_left_cell`: 왼쪽 셀로 이동
+- `hwp_move_to_right_cell`: 오른쪽 셀로 이동
+- `hwp_move_to_upper_cell`: 위쪽 셀로 이동
+- `hwp_move_to_lower_cell`: 아래쪽 셀로 이동
+- `hwp_merge_table_cells`: 테이블 셀 병합
+- `hwp_merge_tables`: 인접한 테이블 병합
+
+#### 고급 문서 생성
+- `hwp_create_complete_document`: 완전한 문서 생성 (보고서, 편지, 메모)
 
 ## API 예시
 
@@ -117,10 +136,23 @@ curl -X POST http://localhost:8080/tools/hwp_fill_column_numbers \
 
 ```
 hwp-mcp-go/
-├── main.go              # 메인 서버 구현
-├── go.mod               # Go 모듈 정의
-├── README.md            # 프로젝트 문서
-└── LICENSE              # 라이선스 파일
+├── hwp-mcp-server/           # 메인 서버 애플리케이션
+│   ├── main.go              # 서버 진입점 및 도구 등록
+│   └── internal/            # 내부 패키지
+│       ├── hwp/             # HWP COM 인터페이스
+│       │   └── controller.go # HWP 컨트롤러 및 스레드 관리
+│       └── handlers/        # MCP 도구 핸들러
+│           ├── document.go  # 문서 관리 도구
+│           ├── text.go      # 텍스트 조작 도구
+│           ├── table.go     # 테이블 작업 도구
+│           └── advanced.go  # 고급 문서 생성 도구
+├── test-client/             # 테스트 클라이언트
+│   └── test.go             # MCP 프로토콜 테스트
+├── go.mod                   # Go 모듈 정의
+├── go.sum                   # 의존성 체크섬
+├── README.md                # 프로젝트 문서
+├── CLAUDE.md                # Claude Code 지침
+└── .gitignore               # Git 무시 파일
 ```
 
 ## 기술 스택
